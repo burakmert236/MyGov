@@ -25,12 +25,18 @@ function App() {
   let [numchoices, setNumchoices] = useState("");
   let [atmostchoice, setAtmostchoice] = useState("");
   let [projectId, setProjectId] = useState("");
+  let [projectId2, setProjectId2] = useState("");
+  let [projectId3, setProjectId3] = useState("");
   let [choices, setChoices] = useState("");
   let [myGovTokenAmount, setMyGovTokenAmount] = useState("");
   let [myGovTokenAmount1, setMyGovTokenAmount1] = useState("");
   let [myGovTokenAmount2, setMyGovTokenAmount2] = useState("");
   let [donateEtherAmount, setDonateEtherAmount] = useState("");
   let [donateMyGovTokenAmount, setDonateMyGovTokenAmount] = useState("");
+  let [ipfshash2, setIpfshash2] = useState("");
+  let [voteDeadline, setVoteDeadline] = useState("");
+  let [paymentAmounts, setPaymentAmounts] = useState("");
+  let [paySchedule, setPaySchedule] = useState("");
 
   const [results, setResults] = useState({});
 
@@ -118,6 +124,12 @@ function App() {
     if(functionName === "getProjectNextPayment") {
       contract.methods.getProjectNextPayment(projectId).call().then(function(result) {
         setResults(results => ({ ...results, getProjectNextPayment: result }));
+      });
+    }
+
+    if(functionName === "getProjectNextPaySchedule") {
+      contract.methods.getProjectNextPaySchedule(projectId2).call().then(function(result) {
+        setResults(results => ({ ...results, getProjectNextPaySchedule: result }));
       });
     }
 
@@ -228,6 +240,23 @@ function App() {
         }
       })
     }
+
+    if(functionName === "submitProjectProposal") {
+      contract.methods.submitProjectProposal(ipfshash2, parseInt(voteDeadline), str2arr(paymentAmounts), str2arr(paySchedule)).send({from: account, gas: 5000000 , value:web3.utils.toWei("0.10","ether")},(err) => {
+        if(err) {
+          console.error(err);
+          setResults(results => ({ ...results, submitSurvey: 'False' }));
+        } else {
+          setResults(results => ({ ...results, submitSurvey: 'True' }));
+        }
+      })
+    }
+
+    if(functionName === "getProjectInfo") {
+      contract.methods.getProjectInfo(projectId3).call().then(function(result) {
+        setResults(results => ({ ...results, getProjectInfo: result }));
+      });
+    }
   }
 
   return (
@@ -294,6 +323,17 @@ function App() {
         />
         <Button onClick={() => handleFunctionCall("getProjectNextPayment")}>Get Project Next Payment</Button>
         {results?.getProjectNextPayment && <span>Project Next Payment: <span className="bold">{results?.getProjectNextPayment}</span></span>}
+      </div>
+
+      <div className="function-container">
+        <input
+            type="text"
+            value={projectId2}
+            onChange={(e) => setProjectId2(e.target.value)}
+            placeholder="Project Id"
+        />
+        <Button onClick={() => handleFunctionCall("getProjectNextPaySchedule")}>Get Project Next Pay Schedule</Button>
+        {results?.getProjectNextPaySchedule && <span>Project Next Schedule: <span className="bold">{results?.getProjectNextPaySchedule}</span></span>}
       </div>
 
       <div className="function-container">
@@ -455,6 +495,51 @@ function App() {
         />
         <Button onClick={() => handleFunctionCall("donateMyGovToken")}>Donate MyGov Token</Button>
         {results?.donateMyGovTokenAmount && <span>Donated: <span className="bold">{results?.donateMyGovTokenAmount}</span></span>}
+      </div>
+
+      <div className="function-container">
+        <input
+            type="text"
+            value={ipfshash2}
+            onChange={(e) => setIpfshash2(e.target.value)}
+            placeholder="Ipfshash"
+        />
+        <input
+            type="text"
+            value={voteDeadline}
+            onChange={(e) => setVoteDeadline(e.target.value)}
+            placeholder="Vote Deadline For Proposal"
+        />
+        <input
+            type="text"
+            value={paymentAmounts}
+            onChange={(e) => setPaymentAmounts(e.target.value)}
+            placeholder="Payment Amounts"
+        />
+        <input
+            type="text"
+            value={paySchedule}
+            onChange={(e) => setPaySchedule(e.target.value)}
+            placeholder="Pay Schedule"
+        />
+        <Button onClick={() => handleFunctionCall("submitProjectProposal")}>Submit Project Proposal</Button>
+        {results?.submitProjectProposal && <span>Result: <span className="bold">{results?.submitProjectProposal}</span></span>}
+      </div>
+
+      <div className="function-container">
+        <input
+            type="text"
+            value={projectId3}
+            onChange={(e) => setProjectId3(e.target.value)}
+            placeholder="Project Id"
+        />
+        <Button onClick={() => handleFunctionCall("getProjectInfo")}>Get Project Info</Button>
+        {results?.getProjectInfo && <span>
+          IPFS Hash: <span className="bold">{results?.getProjectInfo['ipfshash']}</span>
+          <br></br>Vote Deadline For Proposal: <span className="bold">{results?.getProjectInfo['votedeadline']}</span>
+          <br></br>Payment Amounts: <span className="bold">{results?.getProjectInfo['paymentamounts'].toString()}</span>
+          <br></br>Payment Schedule: <span className="bold">{results?.getProjectInfo['payschedule'].toString()}</span>
+        </span>}
       </div>
 
     </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useMetaMask } from "metamask-react";
 import { Button } from "antd";
-import contract from './useWeb3';
+import {contract, web3} from './useWeb3';
 
 import "./App.css";
 
@@ -17,7 +17,15 @@ function App() {
   let [address5, setAddress5] = useState("");
   let [address6, setAddress6] = useState("");
   let [surveyId, setSurveyId] = useState("");
+  let [surveyId1, setSurveyId1] = useState("");
+  let [surveyId2, setSurveyId2] = useState("");
+  let [surveyId3, setSurveyId3] = useState("");
+  let [ipfshash, setIpfshash] = useState("");
+  let [surveydeadline, setSurveydeadline] = useState("");
+  let [numchoices, setNumchoices] = useState("");
+  let [atmostchoice, setAtmostchoice] = useState("");
   let [projectId, setProjectId] = useState("");
+  let [choices, setChoices] = useState("");
   let [myGovTokenAmount, setMyGovTokenAmount] = useState("");
   let [myGovTokenAmount1, setMyGovTokenAmount1] = useState("");
   let [myGovTokenAmount2, setMyGovTokenAmount2] = useState("");
@@ -67,6 +75,7 @@ function App() {
     );
   }
 
+  const str2arr = (str) => str.substring(1,str.length -1).split(",").map(s=>parseInt(s))
   const handleFunctionCall = async (functionName) => {
     if(functionName === "getNoOfSurveys") {
       contract.methods.getNoOfSurveys().call().then(function(result) {
@@ -104,6 +113,13 @@ function App() {
       });
     }
 
+    if(functionName === "getSurveyOwner") {
+      contract.methods.getSurveyOwner(surveyId1).call().then(function(result) {
+        setResults(results => ({ ...results, getSurveyOwner: result }));
+        setSurveyId1("")
+      });
+    }
+
     if(functionName === "getProjectNextPayment") {
       contract.methods.getProjectNextPayment(projectId).call().then(function(result) {
         setResults(results => ({ ...results, getProjectNextPayment: result }));
@@ -114,7 +130,6 @@ function App() {
 
     if(functionName === "faucet") {
       contract.methods.faucet().send({from: account, gas:4700000},(err) => {
-
         if(err) {
           console.error(err);
           setResults(results => ({ ...results, faucet: "False" }));
@@ -177,6 +192,44 @@ function App() {
         setMyGovTokenAmount2("")
       })
     }
+
+    if(functionName === "submitSurvey") {
+      contract.methods.submitSurvey(ipfshash, parseInt(surveydeadline), parseInt(numchoices), parseInt(atmostchoice)).send({from: account, gas:web3.utils.toWei("0.05","ether")},(err) => {
+        if(err) {
+          console.error(err);
+          setResults(results => ({ ...results, submitSurvey: results }));
+        } else {
+          setResults(results => ({ ...results, submitSurvey: results }));
+        }
+        setAddress4("")
+        setMyGovTokenAmount2("")
+      })
+    }
+
+    if(functionName === "takeSurvey") {
+      contract.methods.takeSurvey(surveyId2, str2arr(choices)).send({from: account, gas:4700000},(err) => {
+        if(err) {
+          console.error(err);
+          setResults(results => ({ ...results, takeSurvey: results }));
+        } else {
+          setResults(results => ({ ...results, takeSurvey: results }));
+        }
+        setSurveyId3("")
+        setChoices("")
+      })
+    }
+
+    if(functionName === "getSurveyResults") {
+      contract.methods.getSurveyResults(surveyId3).send({from: account, gas:4700000},(err) => {
+        if(err) {
+          console.error(err);
+          setResults(results => ({ ...results, getSurveyResults: results }));
+        } else {
+          setResults(results => ({ ...results, getSurveyResults: results }));
+        }
+        setSurveyId3("")
+      })
+    }
   }
 
   return (
@@ -214,8 +267,19 @@ function App() {
             onChange={(e) => setSurveyId(e.target.value)}
             placeholder="Survey Id"
         />
-        <Button onClick={() => handleFunctionCall("getSurveyInfo", surveyId)}>Get Survey Info</Button>
+        <Button onClick={() => handleFunctionCall("getSurveyInfo")}>Get Survey Info</Button>
         {results?.getSurveyInfo && <span>Survey Info: <span className="bold">{results?.getSurveyInfo}</span></span>}
+      </div>
+
+      <div className="function-container">
+        <input
+            type="text"
+            value={surveyId1}
+            onChange={(e) => setSurveyId1(e.target.value)}
+            placeholder="Survey Id"
+        />
+        <Button onClick={() => handleFunctionCall("getSurveyOwner")}>Get Survey Owner</Button>
+        {results?.getSurveyOwner && <span>Survey Owner: <span className="bold">{results?.getSurveyOwner}</span></span>}
       </div>
 
       <div className="function-container">
@@ -225,7 +289,7 @@ function App() {
             onChange={(e) => setProjectId(e.target.value)}
             placeholder="Project Id"
         />
-        <Button onClick={() => handleFunctionCall("getProjectNextPayment", projectId)}>Get Project Next Payment</Button>
+        <Button onClick={() => handleFunctionCall("getProjectNextPayment")}>Get Project Next Payment</Button>
         {results?.getProjectNextPayment && <span>Project Next Payment: <span className="bold">{results?.getProjectNextPayment}</span></span>}
       </div>
 
@@ -306,6 +370,63 @@ function App() {
         />
         <Button onClick={() => handleFunctionCall("allowance")}>Allowance</Button>
         {results?.allowance && <span>Result: <span className="bold">{results?.allowance}</span></span>}
+      </div>
+
+      <div className="function-container">
+        <input
+            type="text"
+            value={ipfshash}
+            onChange={(e) => setIpfshash(e.target.value)}
+            placeholder="Ipfshash"
+        />
+        <input
+            type="text"
+            value={surveydeadline}
+            onChange={(e) => setSurveydeadline(e.target.value)}
+            placeholder="Survey Deadline"
+        />
+        <input
+            type="text"
+            value={numchoices}
+            onChange={(e) => setNumchoices(e.target.value)}
+            placeholder="Num Choices"
+        />
+        <input
+            type="text"
+            value={atmostchoice}
+            onChange={(e) => setAtmostchoice(e.target.value)}
+            placeholder="At Most Choice"
+        />
+        <Button onClick={() => handleFunctionCall("submitSurvey")}>Submit Survey</Button>
+        {results?.submitSurvey && <span>Result: <span className="bold">{results?.submitSurvey}</span></span>}
+      </div>
+
+      <div className="function-container">
+        <input
+            type="text"
+            value={surveyId2}
+            onChange={(e) => setSurveyId2(e.target.value)}
+            placeholder="Survey Id"
+        />
+        <input
+            type="text"
+            value={choices}
+            onChange={(e) => setChoices(e.target.value)}
+            placeholder="Choices"
+        />
+        <Button onClick={() => handleFunctionCall("takeSurvey")}>Take Survey</Button>
+        {results?.takeSurvey && <span>Result: <span className="bold">{results?.takeSurvey}</span></span>}
+      </div>
+
+      <div className="function-container">
+        <input
+            type="text"
+            value={surveyId3}
+            onChange={(e) => setSurveyId3(e.target.value)}
+            placeholder="Survey Id"
+        />
+        <Button onClick={() => handleFunctionCall("getSurveyResults")}>Get Survey Results</Button>
+        {results?.getSurveyResults && <span>Survey Results: <span className="bold">{results?.getSurevyResults}</span></span>}
       </div>
     </div>
   );

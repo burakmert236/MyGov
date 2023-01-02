@@ -94,6 +94,20 @@ function App() {
         setResults(results => ({ ...results, getProjectNextPayment: result }));
       });
     }
+
+
+    if(functionName === "faucet") {
+      contract.methods.faucet().send({from: account, gas:4700000},(err) => {
+
+        if(err) {
+          console.error(err);
+          setResults(results => ({ ...results, faucet: false }));
+        } else {
+          setResults(results => ({ ...results, faucet: true }));
+        }
+      })
+
+    }
   }
 
   return (
@@ -145,6 +159,12 @@ function App() {
         <Button onClick={() => handleFunctionCall("getProjectNextPayment", projectId)}>Get Project Next Payment</Button>
         {results?.getProjectNextPayment && <span>Project Next Payment: <span className="bold">{results?.getProjectNextPayment}</span></span>}
       </div>
+
+      <div className="function-container">
+        <Button onClick={async () => await handleFunctionCall("faucet")}>Faucet</Button>
+        {results?.faucet && <span>Faucet: <span className="bold">{results?.faucet}</span></span>}
+      </div>
+
     </div>
   );
 }

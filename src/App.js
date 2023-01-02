@@ -29,6 +29,8 @@ function App() {
   let [myGovTokenAmount, setMyGovTokenAmount] = useState("");
   let [myGovTokenAmount1, setMyGovTokenAmount1] = useState("");
   let [myGovTokenAmount2, setMyGovTokenAmount2] = useState("");
+  let [donateEtherAmount, setDonateEtherAmount] = useState("");
+  let [donateMyGovTokenAmount, setDonateMyGovTokenAmount] = useState("");
 
   const [results, setResults] = useState({});
 
@@ -96,34 +98,26 @@ function App() {
     }
 
     if(functionName === "balanceOf") {
-      if(address0 === "") {
-        setResults((results)=>({...results, balanceOf: null}))
-        return
-      }
       contract.methods.balanceOf(address0).call().then(function(result) {
         setResults(results => ({ ...results, balanceOf: result }));
-        setAddress0("")
       })
     }
 
     if(functionName === "getSurveyInfo") {
       contract.methods.getSurveyInfo(surveyId).call().then(function(result) {
         setResults(results => ({ ...results, getSurveyInfo: result }));
-        setSurveyId("")
       });
     }
 
     if(functionName === "getSurveyOwner") {
       contract.methods.getSurveyOwner(surveyId1).call().then(function(result) {
         setResults(results => ({ ...results, getSurveyOwner: result }));
-        setSurveyId1("")
       });
     }
 
     if(functionName === "getProjectNextPayment") {
       contract.methods.getProjectNextPayment(projectId).call().then(function(result) {
         setResults(results => ({ ...results, getProjectNextPayment: result }));
-        setProjectId("")
       });
     }
 
@@ -148,8 +142,6 @@ function App() {
         } else {
           setResults(results => ({ ...results, transfer: "True" }));
         }
-        setAddress1("")
-        setMyGovTokenAmount("")
       })
     }
 
@@ -161,9 +153,6 @@ function App() {
         } else {
           setResults(results => ({ ...results, transferFrom: "True" }));
         }
-        setAddress2("")
-        setAddress3("")
-        setMyGovTokenAmount1("")
       })
     }
 
@@ -175,8 +164,6 @@ function App() {
         } else {
           setResults(results => ({ ...results, approve: "True" }));
         }
-        setAddress4("")
-        setMyGovTokenAmount2("")
       })
     }
 
@@ -184,25 +171,21 @@ function App() {
       contract.methods.allowance(address5, address6).send({from: account, gas:4700000},(err) => {
         if(err) {
           console.error(err);
-          setResults(results => ({ ...results, allowance: results }));
+          setResults(results => ({ ...results, allowance: 'False' }));
         } else {
-          setResults(results => ({ ...results, allowance: results }));
+          setResults(results => ({ ...results, allowance: 'True' }));
         }
-        setAddress4("")
-        setMyGovTokenAmount2("")
       })
     }
 
     if(functionName === "submitSurvey") {
-      contract.methods.submitSurvey(ipfshash, parseInt(surveydeadline), parseInt(numchoices), parseInt(atmostchoice)).send({from: account, gas:web3.utils.toWei("0.05","ether")},(err) => {
+      contract.methods.submitSurvey(ipfshash, parseInt(surveydeadline), parseInt(numchoices), parseInt(atmostchoice)).send({from: account, gas: 5000000 , value:web3.utils.toWei("0.05","ether")},(err) => {
         if(err) {
           console.error(err);
-          setResults(results => ({ ...results, submitSurvey: results }));
+          setResults(results => ({ ...results, submitSurvey: 'False' }));
         } else {
-          setResults(results => ({ ...results, submitSurvey: results }));
+          setResults(results => ({ ...results, submitSurvey: 'True' }));
         }
-        setAddress4("")
-        setMyGovTokenAmount2("")
       })
     }
 
@@ -210,24 +193,39 @@ function App() {
       contract.methods.takeSurvey(surveyId2, str2arr(choices)).send({from: account, gas:4700000},(err) => {
         if(err) {
           console.error(err);
-          setResults(results => ({ ...results, takeSurvey: results }));
+          setResults(results => ({ ...results, takeSurvey: 'False' }));
         } else {
-          setResults(results => ({ ...results, takeSurvey: results }));
+          setResults(results => ({ ...results, takeSurvey: 'True' }));
         }
-        setSurveyId3("")
-        setChoices("")
       })
     }
 
     if(functionName === "getSurveyResults") {
-      contract.methods.getSurveyResults(surveyId3).send({from: account, gas:4700000},(err) => {
+      contract.methods.getSurveyResults(surveyId3).call({from: account, gas:4700000},function(err, result) {
+        err && console.error(err);
+        setResults(results => ({ ...results, getSurveyResults: result }));
+      })
+    }
+
+    if(functionName === "donateEther") {
+      contract.methods.donateEther().send({from: account, gas:4700000, value:web3.utils.toWei(donateEtherAmount,'wei')},function(err) {
         if(err) {
           console.error(err);
-          setResults(results => ({ ...results, getSurveyResults: results }));
+          setResults(results => ({ ...results, donateEtherAmount: 'False' }));
         } else {
-          setResults(results => ({ ...results, getSurveyResults: results }));
+          setResults(results => ({ ...results, donateEtherAmount: 'True' }));
         }
-        setSurveyId3("")
+      })
+    }
+
+    if(functionName === "donateMyGovToken") {
+      contract.methods.donateMyGovToken(parseInt(donateMyGovTokenAmount)).send({from: account, gas:4700000},function(err) {
+        if(err) {
+          console.error(err);
+          setResults(results => ({ ...results, donateMyGovTokenAmount: 'False' }));
+        } else {
+          setResults(results => ({ ...results, donateMyGovTokenAmount: 'True' }));
+        }
       })
     }
   }
@@ -268,9 +266,14 @@ function App() {
             placeholder="Survey Id"
         />
         <Button onClick={() => handleFunctionCall("getSurveyInfo")}>Get Survey Info</Button>
-        {results?.getSurveyInfo && <span>Survey Info: <span className="bold">{results?.getSurveyInfo}</span></span>}
+        {results?.getSurveyInfo && <span>
+          IPFS Hash: <span className="bold">{results?.getSurveyInfo['ipfshash']}</span>
+          <br></br>Survey Deadline: <span className="bold">{results?.getSurveyInfo['surveydeadline']}</span>
+          <br></br>Number Of Choices: <span className="bold">{results?.getSurveyInfo['numchoices']}</span>
+          <br></br>At Most Choices: <span className="bold">{results?.getSurveyInfo['atmostchoice']}</span>
+        </span>}
       </div>
-
+      
       <div className="function-container">
         <input
             type="text"
@@ -426,8 +429,34 @@ function App() {
             placeholder="Survey Id"
         />
         <Button onClick={() => handleFunctionCall("getSurveyResults")}>Get Survey Results</Button>
-        {results?.getSurveyResults && <span>Survey Results: <span className="bold">{results?.getSurevyResults}</span></span>}
+        {results?.getSurveyResults && <span>
+          Number of taken survey: <span className="bold">{results?.getSurveyResults['numtaken']}</span> 
+          <br></br> Results: <span className="bold">{(results?.getSurveyResults['results']).toString()}</span>
+          </span>}
       </div>
+      
+      <div className="function-container">
+        <input
+            type="text"
+            value={donateEtherAmount}
+            onChange={(e) => setDonateEtherAmount(e.target.value)}
+            placeholder="Ether Amount In Wei"
+        />
+        <Button onClick={() => handleFunctionCall("donateEther")}>Donate Ether</Button>
+        {results?.donateEtherAmount && <span>Donated: <span className="bold">{results?.donateEtherAmount}</span></span>}
+      </div>
+
+      <div className="function-container">
+        <input
+            type="text"
+            value={donateMyGovTokenAmount}
+            onChange={(e) => setDonateMyGovTokenAmount(e.target.value)}
+            placeholder="Token Amount"
+        />
+        <Button onClick={() => handleFunctionCall("donateMyGovToken")}>Donate MyGov Token</Button>
+        {results?.donateMyGovTokenAmount && <span>Donated: <span className="bold">{results?.donateMyGovTokenAmount}</span></span>}
+      </div>
+
     </div>
   );
 }

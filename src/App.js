@@ -9,9 +9,18 @@ const ModelViewer = require('@metamask/logo');
 
 function App() {
   const { status, connect, account, chainId, ethereum } = useMetaMask();
-  const [address, setAddress] = useState("");
-  const [surveyId, setSurveyId] = useState("");
-  const [projectId, setProjectId] = useState("");
+  let [address0, setAddress0] = useState("");
+  let [address1, setAddress1] = useState("");
+  let [address2, setAddress2] = useState("");
+  let [address3, setAddress3] = useState("");
+  let [address4, setAddress4] = useState("");
+  let [address5, setAddress5] = useState("");
+  let [address6, setAddress6] = useState("");
+  let [surveyId, setSurveyId] = useState("");
+  let [projectId, setProjectId] = useState("");
+  let [myGovTokenAmount, setMyGovTokenAmount] = useState("");
+  let [myGovTokenAmount1, setMyGovTokenAmount1] = useState("");
+  let [myGovTokenAmount2, setMyGovTokenAmount2] = useState("");
 
   const [results, setResults] = useState({});
 
@@ -58,10 +67,10 @@ function App() {
     );
   }
 
-  const handleFunctionCall = async (functionName, arguements) => {
+  const handleFunctionCall = async (functionName) => {
     if(functionName === "getNoOfSurveys") {
       contract.methods.getNoOfSurveys().call().then(function(result) {
-        setResults(results => ({ ...results, noOfSurveys: result }));
+        setResults(results => ({ ...results, getNoOfSurveys: result }));
       });
     }
 
@@ -78,20 +87,27 @@ function App() {
     }
 
     if(functionName === "balanceOf") {
-      contract.methods.balanceOf(arguements).call().then(function(result) {
+      if(address0 === "") {
+        setResults((results)=>({...results, balanceOf: null}))
+        return
+      }
+      contract.methods.balanceOf(address0).call().then(function(result) {
         setResults(results => ({ ...results, balanceOf: result }));
-      });
+        setAddress0("")
+      })
     }
 
     if(functionName === "getSurveyInfo") {
-      contract.methods.getSurveyInfo(arguements).call().then(function(result) {
+      contract.methods.getSurveyInfo(surveyId).call().then(function(result) {
         setResults(results => ({ ...results, getSurveyInfo: result }));
+        setSurveyId("")
       });
     }
 
     if(functionName === "getProjectNextPayment") {
-      contract.methods.getProjectNextPayment(arguements).call().then(function(result) {
+      contract.methods.getProjectNextPayment(projectId).call().then(function(result) {
         setResults(results => ({ ...results, getProjectNextPayment: result }));
+        setProjectId("")
       });
     }
 
@@ -101,12 +117,65 @@ function App() {
 
         if(err) {
           console.error(err);
-          setResults(results => ({ ...results, faucet: false }));
+          setResults(results => ({ ...results, faucet: "False" }));
         } else {
-          setResults(results => ({ ...results, faucet: true }));
+          setResults(results => ({ ...results, faucet: "True" }));
         }
       })
 
+    }
+
+    if(functionName === "transfer") {
+      contract.methods.transfer(address1, parseInt(myGovTokenAmount)).send({from: account, gas:4700000},(err) => {
+        if(err) {
+          console.error(err);
+          setResults(results => ({ ...results, transfer: "False" }));
+        } else {
+          setResults(results => ({ ...results, transfer: "True" }));
+        }
+        setAddress1("")
+        setMyGovTokenAmount("")
+      })
+    }
+
+    if(functionName === "transferFrom") {
+      contract.methods.transferFrom(address2, address3, parseInt(myGovTokenAmount1)).send({from: account, gas:4700000},(err) => {
+        if(err) {
+          console.error(err);
+          setResults(results => ({ ...results, transferFrom: "False" }));
+        } else {
+          setResults(results => ({ ...results, transferFrom: "True" }));
+        }
+        setAddress2("")
+        setAddress3("")
+        setMyGovTokenAmount1("")
+      })
+    }
+
+    if(functionName === "approve") {
+      contract.methods.approve(address4, parseInt(myGovTokenAmount2)).send({from: account, gas:4700000},(err) => {
+        if(err) {
+          console.error(err);
+          setResults(results => ({ ...results, approve: "False" }));
+        } else {
+          setResults(results => ({ ...results, approve: "True" }));
+        }
+        setAddress4("")
+        setMyGovTokenAmount2("")
+      })
+    }
+
+    if(functionName === "allowance") {
+      contract.methods.allowance(address5, address6).send({from: account, gas:4700000},(err) => {
+        if(err) {
+          console.error(err);
+          setResults(results => ({ ...results, allowance: results }));
+        } else {
+          setResults(results => ({ ...results, allowance: results }));
+        }
+        setAddress4("")
+        setMyGovTokenAmount2("")
+      })
     }
   }
 
@@ -114,7 +183,7 @@ function App() {
     <div className="App">
       <div className="function-container">
         <Button onClick={() => handleFunctionCall("getNoOfSurveys")}>Get Number Of Surveys</Button>
-        {results?.noOfSurveys && <span>Number Of Surveys: <span className="bold">{results?.noOfSurveys}</span></span>}
+        {results?.getNoOfSurveys && <span>Number Of Surveys: <span className="bold">{results?.getNoOfSurveys}</span></span>}
       </div>
 
       <div className="function-container">
@@ -124,17 +193,17 @@ function App() {
 
       <div className="function-container">
         <Button onClick={() => handleFunctionCall("getNoOfFundedProjects")}>Get Number Of Funded Projects</Button>
-        {results?.getNoOfFundedProjects && <span>Get Number Of Funded Projects: <span className="bold">{results?.getNoOfFundedProjects}</span></span>}
+        {results?.getNoOfFundedProjects && <span>Number Of Funded Projects: <span className="bold">{results?.getNoOfFundedProjects}</span></span>}
       </div>
 
       <div className="function-container">
         <input
             type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
+            value={address0}
+            onChange={(e) => setAddress0(e.target.value)}
             placeholder="Address"
         />
-        <Button onClick={() => handleFunctionCall("balanceOf", address)}>Get Balance of a User</Button>
+        <Button onClick={() => handleFunctionCall("balanceOf")}>Get Balance of a User</Button>
         {results?.balanceOf && <span>Balance of a User: <span className="bold">{results?.balanceOf}</span></span>}
       </div>
 
@@ -165,6 +234,79 @@ function App() {
         {results?.faucet && <span>Faucet: <span className="bold">{results?.faucet}</span></span>}
       </div>
 
+      <div className="function-container">
+        <input
+            type="text"
+            value={address1}
+            onChange={(e) => setAddress1(e.target.value)}
+            placeholder="Destination Address"
+        />
+        <input
+            type="text"
+            value={myGovTokenAmount}
+            onChange={(e) => setMyGovTokenAmount(e.target.value)}
+            placeholder="Amount"
+        />
+        <Button onClick={() => handleFunctionCall("transfer")}>Transfer MyGov Token</Button>
+        {results?.transfer && <span>Result: <span className="bold">{results?.transfer}</span></span>}
+      </div>
+
+      <div className="function-container">
+        <input
+            type="text"
+            value={address2}
+            onChange={(e) => setAddress2(e.target.value)}
+            placeholder="Source Address"
+        />
+        <input
+            type="text"
+            value={address3}
+            onChange={(e) => setAddress3(e.target.value)}
+            placeholder="Destination Address"
+        />
+        <input
+            type="text"
+            value={myGovTokenAmount1}
+            onChange={(e) => setMyGovTokenAmount1(e.target.value)}
+            placeholder="Amount"
+        />
+        <Button onClick={() => handleFunctionCall("transfer")}>Transfer Token F. Another Account</Button>
+        {results?.transferFrom && <span>Result: <span className="bold">{results?.transferFrom}</span></span>}
+      </div>
+
+      <div className="function-container">
+        <input
+            type="text"
+            value={address4}
+            onChange={(e) => setAddress4(e.target.value)}
+            placeholder="Spender Address"
+        />
+        <input
+            type="text"
+            value={myGovTokenAmount2}
+            onChange={(e) => setMyGovTokenAmount2(e.target.value)}
+            placeholder="Amount"
+        />
+        <Button onClick={() => handleFunctionCall("approve")}>Approve</Button>
+        {results?.approve && <span>Result: <span className="bold">{results?.approve}</span></span>}
+      </div>
+
+      <div className="function-container">
+        <input
+            type="text"
+            value={address5}
+            onChange={(e) => setAddress5(e.target.value)}
+            placeholder="Owner Address"
+        />
+        <input
+            type="text"
+            value={address6}
+            onChange={(e) => setAddress6(e.target.value)}
+            placeholder="Spender Address"
+        />
+        <Button onClick={() => handleFunctionCall("allowance")}>Allowance</Button>
+        {results?.allowance && <span>Result: <span className="bold">{results?.allowance}</span></span>}
+      </div>
     </div>
   );
 }

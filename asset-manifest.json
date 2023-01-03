@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/MyGov/static/css/main.ce566915.css",
+    "main.js": "/MyGov/static/js/main.6050e7ad.js",
+    "index.html": "/MyGov/index.html",
+    "main.ce566915.css.map": "/MyGov/static/css/main.ce566915.css.map",
+    "main.6050e7ad.js.map": "/MyGov/static/js/main.6050e7ad.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.ce566915.css",
+    "static/js/main.6050e7ad.js"
+  ]
+}

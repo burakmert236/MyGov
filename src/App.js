@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useMetaMask } from "metamask-react";
 import { Button } from "antd";
-import {contract, web3} from './useWeb3';
+import Web3 from 'web3';
+import { contract_address, my_gov_abi } from "./useWeb3";
 
 import "./App.css";
 
 const ModelViewer = require('@metamask/logo');
 
 function App() {
-  const { status, connect, account, chainId, ethereum } = useMetaMask();
+  const [account, setAccount] = useState();
+  const [web3State, setWeb3State] = useState();
+  const [contractState, setContractState] = useState();
+
   let [address0, setAddress0] = useState("");
   let [address1, setAddress1] = useState("");
   let [address2, setAddress2] = useState("");
@@ -53,6 +56,34 @@ function App() {
   const logoRef = useRef();
   const [refState, setRefState] = useState();
 
+  let selectedAccount;
+  let provider = window.ethereum;
+
+  const handleConnect = () => {
+    if (typeof provider !== 'undefined') {
+      // Metamask is installed.
+      provider.request({ method: 'eth_requestAccounts' }).then(accounts => {
+        selectedAccount = accounts[0];
+        setAccount(selectedAccount);
+        console.log(`SelectedAccount is: ${selectedAccount}`);
+      }).catch(err => {
+        console.log(err);
+        return;
+      })
+    }
+  
+    window.ethereum.on('accountsChanged', function (accounts) {
+      selectedAccount = accounts[0];
+      console.log(`SelectedAccount changed to: ${selectedAccount}`);
+    });
+  
+    const web3 = new Web3(provider);
+    setWeb3State(web3);
+
+    const contract = new web3.eth.Contract(my_gov_abi, contract_address);
+    setContractState(contract);
+  }
+
   useEffect(() => {
     if(refState) {
       const viewer = ModelViewer({
@@ -68,12 +99,8 @@ function App() {
       container.appendChild(viewer.container);
     }
   }, [refState])
-
-  if(status === "unavailable") {
-    return(<h2>Please use another browser with MetaMask extension</h2>)
-  }
   
-  if (status === "notConnected" || status === "connecting") {
+  if (!account) {
     return(
       <div className="connect-button-container">
         <div id="logo-container" ref={el => {
@@ -83,263 +110,265 @@ function App() {
         <Button 
           className="connect-button" 
           type="primary" 
-          onClick={connect} 
-          loading={status === "connecting"} 
-          disabled={status === "connecting"}
+          onClick={() => handleConnect()} 
         >
-          {status === "connecting" ? "Connecting" : "Connect to MetaMask"}
+          Connect to MetaMask
         </Button>
       </div>
     );
   }
 
   const str2arr = (str) => str.substring(1,str.length -1).split(",").map(s=>parseInt(s))
-  const str2WeiArr = (str) => str.substring(1,str.length -1).split(",").map(s=>web3.utils.toWei(s, "wei"))
+  const str2WeiArr = (str) => str.substring(1,str.length -1).split(",").map(s=>web3State.utils.toWei(s, "wei"))
   const str2bool = (str) => str === "true" ? true : false
   const handleFunctionCall = async (functionName) => {
     if(functionName === "getNoOfSurveys") {
-      contract.methods.getNoOfSurveys().call().then(function(result) {
+      contractState.methods.getNoOfSurveys().call().then(function(result) {
         setResults(results => ({ ...results, getNoOfSurveys: result }));
       });
     }
 
     if(functionName === "totalSupply") {
-      contract.methods.totalSupply().call().then(function(result) {
+      contractState.methods.totalSupply().call().then(function(result) {
         setResults(results => ({ ...results, totalSupply: result }));
       });
     }
 
     if(functionName === "getNoOfFundedProjects") {
-      contract.methods.getNoOfFundedProjects().call().then(function(result) {
+      contractState.methods.getNoOfFundedProjects().call().then(function(result) {
         setResults(results => ({ ...results, getNoOfFundedProjects: result }));
       });
     }
 
     if(functionName === "getNoOfProjectProposals") {
-      contract.methods.getNoOfProjectProposals().call().then(function(result) {
+      contractState.methods.getNoOfProjectProposals().call().then(function(result) {
         setResults(results => ({ ...results, getNoOfProjectProposals: result }));
       });
     }
 
     if(functionName === "balanceOf") {
-      contract.methods.balanceOf(address0).call().then(function(result) {
+      contractState.methods.balanceOf(address0).call().then(function(result) {
         setResults(results => ({ ...results, balanceOf: result }));
       })
     }
 
     if(functionName === "getSurveyInfo") {
-      contract.methods.getSurveyInfo(surveyId).call().then(function(result) {
+      contractState.methods.getSurveyInfo(surveyId).call().then(function(result) {
         setResults(results => ({ ...results, getSurveyInfo: result }));
       });
     }
 
     if(functionName === "getSurveyOwner") {
-      contract.methods.getSurveyOwner(surveyId1).call().then(function(result) {
+      contractState.methods.getSurveyOwner(surveyId1).call().then(function(result) {
         setResults(results => ({ ...results, getSurveyOwner: result }));
       });
     }
 
     if(functionName === "getProjectNextPayment") {
-      contract.methods.getProjectNextPayment(projectId).call().then(function(result) {
+      contractState.methods.getProjectNextPayment(projectId).call().then(function(result) {
         setResults(results => ({ ...results, getProjectNextPayment: result }));
       });
     }
 
     if(functionName === "getProjectNextPaySchedule") {
-      contract.methods.getProjectNextPaySchedule(projectId2).call().then(function(result) {
+      contractState.methods.getProjectNextPaySchedule(projectId2).call().then(function(result) {
         setResults(results => ({ ...results, getProjectNextPaySchedule: result }));
       });
     }
 
 
     if(functionName === "faucet") {
-      contract.methods.faucet().send({from: account, gas:4700000},(err) => {
-        if(err) {
-          console.error(err);
-          setResults(results => ({ ...results, faucet: "False" }));
-        } else {
-          setResults(results => ({ ...results, faucet: "True" }));
-        }
+      contractState.methods.faucet().send({from: account, gas:4700000})
+      .then(result => {
+        console.log(result);
+        setResults(results => ({ ...results, faucet: "True" }));
       })
-
+      .catch(err => {
+        console.error(err);
+        setResults(results => ({ ...results, faucet: "False" }));
+      })
     }
 
     if(functionName === "transfer") {
-      contract.methods.transfer(address1, parseInt(myGovTokenAmount)).send({from: account, gas:4700000},(err) => {
-        if(err) {
-          console.error(err);
-          setResults(results => ({ ...results, transfer: "False" }));
-        } else {
-          setResults(results => ({ ...results, transfer: "True" }));
-        }
+      contractState.methods.transfer(address1, parseInt(myGovTokenAmount)).send({from: account, gas:4700000})
+      .then(result => {
+        setResults(results => ({ ...results, transfer: "True" }));
+      })
+      .catch(err => {
+        console.error(err);
+        setResults(results => ({ ...results, transfer: "False" }));
       })
     }
 
     if(functionName === "transferFrom") {
-      contract.methods.transferFrom(address2, address3, parseInt(myGovTokenAmount1)).send({from: account, gas:4700000},(err) => {
-        if(err) {
-          console.error(err);
-          setResults(results => ({ ...results, transferFrom: "False" }));
-        } else {
-          setResults(results => ({ ...results, transferFrom: "True" }));
-        }
+      contractState.methods.transferFrom(address2, address3, parseInt(myGovTokenAmount1)).send({from: account, gas:4700000})
+      .then(result => {
+        setResults(results => ({ ...results, transferFrom: "True" }));
+      })
+      .catch(err => {
+        console.error(err);
+        setResults(results => ({ ...results, transferFrom: "False" }));
       })
     }
 
     if(functionName === "approve") {
-      contract.methods.approve(address4, parseInt(myGovTokenAmount2)).send({from: account, gas:4700000},(err) => {
-        if(err) {
-          console.error(err);
-          setResults(results => ({ ...results, approve: "False" }));
-        } else {
-          setResults(results => ({ ...results, approve: "True" }));
-        }
+      contractState.methods.approve(address4, parseInt(myGovTokenAmount2)).send({from: account, gas:4700000})
+      .then(result => {
+        setResults(results => ({ ...results, approve: "True" }));
+      })
+      .catch(err => {
+        console.error(err);
+        setResults(results => ({ ...results, approve: "False" }));
       })
     }
 
     if(functionName === "allowance") {
-      contract.methods.allowance(address5, address6).send({from: account, gas:4700000},(err) => {
-        if(err) {
-          console.error(err);
-          setResults(results => ({ ...results, allowance: 'False' }));
-        } else {
-          setResults(results => ({ ...results, allowance: 'True' }));
-        }
+      contractState.methods.allowance(address5, address6).send({from: account, gas:4700000})
+      .then(result => {
+        setResults(results => ({ ...results, allowance: 'True' }));
+      })
+      .catch(err => {
+        console.error(err);
+        setResults(results => ({ ...results, allowance: 'False' }));
       })
     }
 
     if(functionName === "submitSurvey") {
-      contract.methods.submitSurvey(ipfshash, parseInt(surveydeadline), parseInt(numchoices), parseInt(atmostchoice)).send({from: account, gas: 5000000 , value:web3.utils.toWei("0.04","ether")},(err) => {
-        if(err) {
-          console.error(err);
-          setResults(results => ({ ...results, submitSurvey: 'False' }));
-        } else {
-          setResults(results => ({ ...results, submitSurvey: 'True' }));
-        }
+      contractState.methods.submitSurvey(ipfshash, parseInt(surveydeadline), parseInt(numchoices), parseInt(atmostchoice)).send({from: account, gas: 5000000 , value:web3State.utils.toWei("0.04","ether")})
+      .then(result => {
+        setResults(results => ({ ...results, submitSurvey: 'True' }));
+      })
+      .catch(err => {
+        console.error(err);
+        setResults(results => ({ ...results, submitSurvey: 'False' }));
       })
     }
 
     if(functionName === "takeSurvey") {
-      contract.methods.takeSurvey(surveyId2, str2arr(choices)).send({from: account, gas:4700000},(err) => {
-        if(err) {
-          console.error(err);
-          setResults(results => ({ ...results, takeSurvey: 'False' }));
-        } else {
-          setResults(results => ({ ...results, takeSurvey: 'True' }));
-        }
+      contractState.methods.takeSurvey(surveyId2, str2arr(choices)).send({from: account, gas:4700000})
+      .then(result => {
+        setResults(results => ({ ...results, takeSurvey: 'True' }));
+      })
+      .catch(err => {
+        console.error(err);
+        setResults(results => ({ ...results, takeSurvey: 'False' }));
       })
     }
 
     if(functionName === "getSurveyResults") {
-      contract.methods.getSurveyResults(surveyId3).call({from: account, gas:4700000},function(err, result) {
-        err && console.error(err);
+      contractState.methods.getSurveyResults(surveyId3).call({from: account, gas:4700000})
+      .then(result => {
         setResults(results => ({ ...results, getSurveyResults: result }));
+      })
+      .catch(err => {
+        console.error(err);
+        setResults(results => ({ ...results, getSurveyResults: err }));
       })
     }
 
     if(functionName === "donateEther") {
-      contract.methods.donateEther().send({from: account, gas:4700000, value:web3.utils.toWei(donateEtherAmount,'wei')},function(err) {
-        if(err) {
-          console.error(err);
-          setResults(results => ({ ...results, donateEtherAmount: 'False' }));
-        } else {
-          setResults(results => ({ ...results, donateEtherAmount: 'True' }));
-        }
+      contractState.methods.donateEther().send({from: account, gas:4700000, value:web3State.utils.toWei(donateEtherAmount,'wei')})
+      .then(result => {
+        setResults(results => ({ ...results, donateEtherAmount: 'True' }));
+      })
+      .catch(err => {
+        console.error(err);
+        setResults(results => ({ ...results, donateEtherAmount: 'False' }));
       })
     }
 
     if(functionName === "donateMyGovToken") {
-      contract.methods.donateMyGovToken(parseInt(donateMyGovTokenAmount)).send({from: account, gas:4700000},function(err) {
-        if(err) {
-          console.error(err);
-          setResults(results => ({ ...results, donateMyGovTokenAmount: 'False' }));
-        } else {
-          setResults(results => ({ ...results, donateMyGovTokenAmount: 'True' }));
-        }
+      contractState.methods.donateMyGovToken(parseInt(donateMyGovTokenAmount)).send({from: account, gas:4700000})
+      .then(result => {
+        setResults(results => ({ ...results, donateMyGovTokenAmount: 'True' }));
+      })
+      .catch(err => {
+        console.error(err);
+        setResults(results => ({ ...results, donateMyGovTokenAmount: 'False' }));
       })
     }
 
     if(functionName === "submitProjectProposal") {
-      contract.methods.submitProjectProposal(ipfshash2, parseInt(voteDeadline), str2WeiArr(paymentAmounts), str2arr(paySchedule)).send({from: account, gas: 5000000 , value:web3.utils.toWei("0.10","ether")},(err) => {
-        if(err) {
-          console.error(err);
-          setResults(results => ({ ...results, submitProjectProposal: 'False' }));
-        } else {
-          setResults(results => ({ ...results, submitProjectProposal: 'True' }));
-        }
+      contractState.methods.submitProjectProposal(ipfshash2, parseInt(voteDeadline), str2WeiArr(paymentAmounts), str2arr(paySchedule)).send({from: account, gas: 5000000 , value:web3State.utils.toWei("0.10","ether")})
+      .then(result => {
+        setResults(results => ({ ...results, submitProjectProposal: 'True' }));
+      })
+      .catch(err => {
+        console.error(err);
+        setResults(results => ({ ...results, submitProjectProposal: 'False' }));
       })
     }
 
     if(functionName === "getProjectInfo") {
-      contract.methods.getProjectInfo(projectId3).call().then(function(result) {
+      contractState.methods.getProjectInfo(projectId3).call().then(function(result) {
         setResults(results => ({ ...results, getProjectInfo: result }));
       });
     }
 
     if(functionName === "getProjectOwner") {
-      contract.methods.getProjectOwner(projectId4).call().then(function(result) {
+      contractState.methods.getProjectOwner(projectId4).call().then(function(result) {
         setResults(results => ({ ...results, getProjectOwner: result }));
       });
     }
 
     if(functionName === "voteForProjectProposal") {
-      contract.methods.voteForProjectProposal(projectId5,str2bool(choice1)).send({from: account, gas:4700000},(err) => {
-        if(err) {
-          console.error(err);
-          setResults(results => ({ ...results, voteForProjectProposal: "False" }));
-        } else {
-          setResults(results => ({ ...results, voteForProjectProposal: "True" }));
-        }
+      contractState.methods.voteForProjectProposal(projectId5,str2bool(choice1)).send({from: account, gas:4700000})
+      .then(result => {
+        setResults(results => ({ ...results, voteForProjectProposal: "True" }));
+      })
+      .catch(err => {
+        console.error(err);
+        setResults(results => ({ ...results, voteForProjectProposal: "False" }));
       })
     }
 
     if(functionName === "voteForProjectPayment") {
-      contract.methods.voteForProjectPayment(projectId6,str2bool(choice2)).send({from: account, gas:4700000},(err) => {
-        if(err) {
-          console.error(err);
-          setResults(results => ({ ...results, voteForProjectPayment: "False" }));
-        } else {
-          setResults(results => ({ ...results, voteForProjectPayment: "True" }));
-        }
+      contractState.methods.voteForProjectPayment(projectId6,str2bool(choice2)).send({from: account, gas:4700000})
+      .then(result => {
+        setResults(results => ({ ...results, voteForProjectPayment: "True" }));
+      })
+      .catch(err => {
+        console.error(err);
+        setResults(results => ({ ...results, voteForProjectPayment: "False" }));
       })
     }
 
     if(functionName === "delegateVoteTo") {
-      contract.methods.delegateVoteTo(memberAddress,projectId7).send({from: account, gas:4700000},(err) => {
-        if(err) {
-          console.error(err);
-          setResults(results => ({ ...results, delegateVoteTo: "False" }));
-        } else {
-          setResults(results => ({ ...results, delegateVoteTo: "True" }));
-        }
+      contractState.methods.delegateVoteTo(memberAddress,projectId7).send({from: account, gas:4700000})
+      .then(result => {
+        setResults(results => ({ ...results, delegateVoteTo: "True" }));
+      })
+      .catch(err => {
+        console.error(err);
+        setResults(results => ({ ...results, delegateVoteTo: "False" }));
       })
     }
 
     if(functionName === "withdrawProjectPayment") {
-      contract.methods.withdrawProjectPayment(parseInt(projectId99)).send({from: account, gas: 5000000},(err) => {
-        if(err) {
-          console.error(err);
-          setResults(results => ({ ...results, withdrawProjectPayment: 'False' }));
-        } else {
-          setResults(results => ({ ...results, withdrawProjectPayment: 'True' }));
-        }
+      contractState.methods.withdrawProjectPayment(parseInt(projectId99)).send({from: account, gas: 5000000})
+      .then(result => {
+        setResults(results => ({ ...results, withdrawProjectPayment: 'True' }));
+      })
+      .catch(err => {
+        console.error(err);
+        setResults(results => ({ ...results, withdrawProjectPayment: 'False' }));
       })
     }
 
     if(functionName === "getEtherReceivedByProject") {
-      contract.methods.getEtherReceivedByProject(projectId98).call().then(function(result) {
+      contractState.methods.getEtherReceivedByProject(projectId98).call().then(function(result) {
         setResults(results => ({ ...results, getEtherReceivedByProject: result }));
       });
     }
 
     if(functionName === "reserveProjectGrant") {
-      contract.methods.reserveProjectGrant(parseInt(projectId97)).send({from: account, gas: 5000000},(err) => {
-        if(err) {
-          console.error(err);
-          setResults(results => ({ ...results, reserveProjectGrant: 'False' }));
-        } else {
-          setResults(results => ({ ...results, reserveProjectGrant: 'True' }));
-        }
+      contractState.methods.reserveProjectGrant(parseInt(projectId97)).send({from: account, gas: 5000000})
+      .then(result => {
+        setResults(results => ({ ...results, reserveProjectGrant: 'True' }));
+      })
+      .catch(err => {
+        console.error(err);
+        setResults(results => ({ ...results, reserveProjectGrant: 'False' }));
       })
     }
     
